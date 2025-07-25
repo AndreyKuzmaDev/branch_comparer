@@ -1,7 +1,7 @@
 [project]
 name = 'branch-comparer'
 requires-python = ">=3.9"
-version = "0.2"
+version = "0.3"
 authors = [
     {name = "AndreyKuzmaDev", email = "andreykuzma2004@gmail.com"},
 ]
@@ -13,3 +13,6 @@ dependencies = [
 
 [project.scripts]
 compare-branches = "comparer.cli:app"
+
+[build-system]
+requires = ["setuptools", "wheel"]

@@ -45,15 +45,43 @@ def get_packages_from_api(arch : str) -> (dict, dict, set):
     return r_sisyphus['packages'], r_p11['packages'], arches
 
 
+def restructure(packages : dict, arches : set) -> (dict, dict):
+    structured = {i: {} for i in arches}
+    for package in packages:
+        structured[package['arch']][package['name']] = package
+
+    return structured
+
+
+def form_output(detailed : bool, find_sisyphus_only : bool, find_p11_only : bool, find_sisyphus_outdated : bool, find_p11_outdated : bool, arches : set) -> dict:
+    if detailed:
+        package_list = dict
+    else:
+        package_list = list
+
+    one_arch = {}
+    if find_sisyphus_only:
+        one_arch['sisyphus_only'] = package_list()
+    if find_p11_only:
+        one_arch['p11_only'] = package_list()
+    if find_sisyphus_outdated:
+        one_arch['sisyphus_outdated'] = package_list()
+    if find_p11_outdated:
+        one_arch['p1_outdated'] = package_list()
+    return {i: deepcopy(one_arch) for i in arches}
+
+
+
 def compare(
     out_path : Annotated[str, typer.Argument(help="Path to output file")] = 'comparison.json',
-    arch : Annotated[str, typer.Option(help="Find packages with specific architecture (x86_64, aarch64, i586, noarch, x86_64-i586)")] = "",
-    detailed: Annotated[bool, typer.Option(help="Write to file detailed info about packages (default - just names)")] = False,
+    arch : Annotated[str, typer.Option(help="Find only packages with specific architecture (x86_64, aarch64, i586, noarch, x86_64-i586)")] = "",
     find_sisyphus_only : Annotated[bool, typer.Option(help="Find packages that present only in sisyphus")] = True,
     find_p11_only : Annotated[bool, typer.Option(help="Find packages that present only in p11")] = True,
-    find_outdated : Annotated[bool, typer.Option(help="Find packages that have more recent version on p11")] = True,
-    use_release : Annotated[bool, typer.Option(help="Use release number instead of version number to detect outdated packages")] = False,
-    verbose : Annotated[bool, typer.Option(help="Print info about progress")] = False,
+    find_sisyphus_outdated : Annotated[bool, typer.Option(help="Find packages that have more recent version in p11")] = True,
+    find_p11_outdated : Annotated[bool, typer.Option(help="Find packages that have more recent version in sisyphus")] = True,
+    detailed: Annotated[bool, typer.Option("--detailed","-d", help="Write to file detailed info about packages (default - just names)")] = False,
+    use_release : Annotated[bool, typer.Option("--use-release", "-r", help="Use release number instead of version number to detect outdated packages")] = False,
+    verbose : Annotated[bool, typer.Option("--verbose", "-v", help="Print info about progress")] = False,
 ):
     if verbose:
         print("Getting info...")
@@ -65,33 +93,15 @@ def compare(
         print("Done!")
         print("Comparing branches...")
 
-    s_structured = {i : {} for i in arches}
-    for package in packages_sisyphus:
-        s_structured[package['arch']][package['name']] = package
+    s_structured = restructure(packages_sisyphus, arches)
+    p_structured = restructure(packages_p11, arches)
 
-    p_structured = {i : {} for i in arches}
-    for package in packages_p11:
-        p_structured[package['arch']][package['name']] = package
-
-    if detailed:
-        package_list = dict
-    else:
-        package_list = list
-
-    one_arch = {}
-    if find_sisyphus_only:
-        one_arch['sisyphus_only'] = package_list()
-    if find_p11_only:
-        one_arch['p11_only'] = package_list()
-    if find_outdated:
-        one_arch['outdated'] = package_list()
-    output = {i : deepcopy(one_arch) for i in arches}
+    output = form_output(detailed, find_sisyphus_only, find_p11_only, find_sisyphus_outdated, find_p11_outdated, arches)
 
     if use_release:
         is_older = is_older_release
     else:
         is_older = is_older_version
-
 
     for name in names:
         for a in arches:
@@ -105,14 +115,20 @@ def compare(
                     output[a]['p11_only'].append(name)
                 else:
                     output[a]['p11_only'][name] = p_structured[a][name]
-            if find_outdated and name in s_structured[a] and name in p_structured[a] and is_older(s_structured[a][name], p_structured[a][name]):
+            if find_sisyphus_outdated and name in s_structured[a] and name in p_structured[a] and is_older(s_structured[a][name], p_structured[a][name]):
                 if not detailed:
-                    output[a]['outdated'].append(name)
+                    output[a]['sisyphus_outdated'].append(name)
                 else:
-                    output[a]['outdated'][name] = s_structured[a][name]
-                    output[a]['outdated'][name]['latest_version'] = p_structured[a][name]['version']
-                    output[a]['outdated'][name]['latest_release'] = p_structured[a][name]['release']
-
+                    output[a]['sisyphus_outdated'][name] = s_structured[a][name]
+                    output[a]['sisyphus_outdated'][name]['latest_version'] = p_structured[a][name]['version']
+                    output[a]['sisyphus_outdated'][name]['latest_release'] = p_structured[a][name]['release']
+            if find_p11_outdated and name in s_structured[a] and name in p_structured[a] and is_older(p_structured[a][name], s_structured[a][name]):
+                if not detailed:
+                    output[a]['p1_outdated'].append(name)
+                else:
+                    output[a]['p1_outdated'][name] = p_structured[a][name]
+                    output[a]['p1_outdated'][name]['latest_version'] = s_structured[a][name]['version']
+                    output[a]['p1_outdated'][name]['latest_release'] = s_structured[a][name]['release']
 
     if arch != "":
         output = output[arch]
