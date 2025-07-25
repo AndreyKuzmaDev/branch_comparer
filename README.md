@@ -1,5 +1,5 @@
 # branch comparer
-Branch comparer is a simple tool to track states of packages in sisyphus and p11 repositories. You can check wich packages are present only in one of them and wich are present in both but have most recent version only in one. #branch comparer
+Branch comparer is a simple tool to track states of packages in sisyphus and p11 repositories. You can check wich packages are present only in one of them and wich are present in both but have most recent version only in one
 # Instalation
 Download binaries from latest release and run 
 ``` 
