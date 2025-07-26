@@ -67,7 +67,7 @@ def form_output(detailed : bool, find_sisyphus_only : bool, find_p11_only : bool
     if find_sisyphus_outdated:
         one_arch['sisyphus_outdated'] = package_list()
     if find_p11_outdated:
-        one_arch['p1_outdated'] = package_list()
+        one_arch['p11_outdated'] = package_list()
     return {i: deepcopy(one_arch) for i in arches}
 
 
@@ -124,11 +124,11 @@ def compare(
                     output[a]['sisyphus_outdated'][name]['latest_release'] = p_structured[a][name]['release']
             if find_p11_outdated and name in s_structured[a] and name in p_structured[a] and is_older(p_structured[a][name], s_structured[a][name]):
                 if not detailed:
-                    output[a]['p1_outdated'].append(name)
+                    output[a]['p11_outdated'].append(name)
                 else:
-                    output[a]['p1_outdated'][name] = p_structured[a][name]
-                    output[a]['p1_outdated'][name]['latest_version'] = s_structured[a][name]['version']
-                    output[a]['p1_outdated'][name]['latest_release'] = s_structured[a][name]['release']
+                    output[a]['p11_outdated'][name] = p_structured[a][name]
+                    output[a]['p11_outdated'][name]['latest_version'] = s_structured[a][name]['version']
+                    output[a]['p11_outdated'][name]['latest_release'] = s_structured[a][name]['release']
 
     if arch != "":
         output = output[arch]
